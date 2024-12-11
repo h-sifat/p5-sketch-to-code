@@ -1,8 +1,9 @@
 import {
+  type CTX,
   ToolNames,
   ToolStatus,
-  type CTX,
   type Point,
+  type Shapes,
   type SketchData,
 } from "./interface";
 

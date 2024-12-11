@@ -1,4 +1,5 @@
 import type p5 from "p5";
+import { ShapeStore } from "./states.svelte";
 
 export const enum ToolNames {
   SELECT = "select",
@@ -18,13 +19,18 @@ export const enum ToolStatus {
   DRAWING = "drawing",
 }
 
+export const enum Commands {
+  UNDO = "undo",
+  REDO = "redo",
+}
+
 export interface Shapes {
   arg: any;
   type: ToolNames;
 }
 
 export interface SketchData {
-  drawnShapes: Shapes[];
+  drawnShapes: ShapeStore;
   selectedTool: ToolNames;
   toolState: { status: ToolStatus; data: any };
 }

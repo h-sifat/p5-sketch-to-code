@@ -1,3 +1,4 @@
+import type { Renderer } from "p5";
 import {
   type CTX,
   ToolNames,
@@ -29,12 +30,16 @@ export function makeSketch($data: SketchData) {
     const getCursor = () => [ctx.mouseX || 0, ctx.mouseY || 0] as const;
 
     // ------- global states --------
+    let canvasRenderer: Renderer;
     let isMetaKeyPressed = false;
     let isShiftKeyPressed = false;
     // ------- end global states --------
 
+    const isIrrelevantEvent = (e: PointerEvent | KeyboardEvent) =>
+      canvasRenderer ? canvasRenderer.elt !== e.target : false;
+
     ctx.setup = () => {
-      ctx.createCanvas(1000, 1000);
+      canvasRenderer = ctx.createCanvas(1000, 1000);
     };
 
     ctx.draw = () => {
@@ -42,7 +47,7 @@ export function makeSketch($data: SketchData) {
       const cursor = getCursor();
 
       // Draw existing shapes
-      for (const shape of $data.drawnShapes || []) {
+      for (const shape of $data.drawnShapes.array) {
         if (shapeRenderers[shape.type])
           shapeRenderers[shape.type](ctx, shape.arg);
       }
@@ -75,6 +80,8 @@ export function makeSketch($data: SketchData) {
     };
 
     ctx.mousePressed = (e: PointerEvent) => {
+      if (isIrrelevantEvent(e)) return;
+
       const cursor = getCursor();
 
       // console.log("mousePressed:", cursor, $data.toolState);
@@ -100,7 +107,7 @@ export function makeSketch($data: SketchData) {
             { isConstrained: isShiftKeyPressed }
           );
 
-          $data.drawnShapes.push({ arg: shapeArg, type: $data.selectedTool });
+          $data.drawnShapes.add({ arg: shapeArg, type: $data.selectedTool });
         }
 
         // reset the tool state

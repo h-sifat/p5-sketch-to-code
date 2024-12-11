@@ -1,18 +1,24 @@
 <script lang="ts">
   import p5 from "p5";
   import { onDestroy } from "svelte";
-  import ShapeSelector from "./lib/ShapeSelector.svelte";
+  import Toolbar from "./lib/Toolbar.svelte";
   import clsx from "clsx";
   import { makeSketch } from "./lib/sketch";
-  import { ToolNames, ToolStatus, type SketchData } from "./lib/interface";
+  import {
+    Commands,
+    ToolNames,
+    ToolStatus,
+    type SketchData,
+  } from "./lib/interface";
+  import { ShapeStore } from "./lib/states.svelte";
 
   let p5Instance: p5;
   let canvas: HTMLDivElement;
 
   // svelte-ignore state_referenced_locally
   let data: SketchData = $state({
-    drawnShapes: [],
     selectedTool: null,
+    drawnShapes: new ShapeStore(),
     toolState: { data: {}, status: ToolStatus.IDLE },
   });
 
@@ -21,7 +27,27 @@
     data.selectedTool = data.selectedTool === tool ? ToolNames.SELECT : tool;
   }
 
+  function handleCommand(cmd: Commands) {
+    if (cmd in data.drawnShapes) {
+      data.drawnShapes[cmd]();
+    }
+  }
+
+  function shortcutsHandler(e: KeyboardEvent) {
+    const hasMetaKey = e.ctrlKey || e.metaKey;
+
+    if (hasMetaKey && e.key.toLowerCase() === "z") {
+      e.preventDefault();
+      handleCommand(Commands.UNDO);
+    } else if (hasMetaKey && e.key.toLowerCase() === "y") {
+      e.preventDefault();
+      handleCommand(Commands.REDO);
+    }
+  }
+
   // --------- Lifecycle Hooks -----------
+  window.addEventListener("keydown", shortcutsHandler);
+
   $effect(() => {
     if (canvas && !p5Instance) {
       p5Instance = new p5(makeSketch(data), canvas);
@@ -30,6 +56,7 @@
 
   onDestroy(() => {
     if (p5Instance) p5Instance.remove();
+    window.removeEventListener("keydown", shortcutsHandler);
   });
 </script>
 
@@ -42,7 +69,7 @@
       "flex items-center justify-center px-5 py-1 border border-black"
     )}
   >
-    <ShapeSelector selected={data.selectedTool} {handleSelectTool} />
+    <Toolbar selected={data.selectedTool} {handleSelectTool} {handleCommand} />
   </div>
 
   <div
