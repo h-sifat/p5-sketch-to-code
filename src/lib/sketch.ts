@@ -15,6 +15,7 @@ import {
   constrainToSquare,
   approximateTextDimension,
 } from "./util";
+import { isEqual } from "lodash";
 
 const SELECT_BOX_COLOR = Object.freeze([96, 213, 255, 100]) as Color;
 
@@ -27,7 +28,10 @@ const shapeRenderers = Object.freeze({
 
 export function makeSketch($data: SketchData) {
   return function sketch(ctx: CTX) {
+    const getDimension = () => [ctx.width, ctx.height] as const;
     const getCursor = () => [ctx.mouseX || 0, ctx.mouseY || 0] as const;
+    const getNewCanvasSize = () =>
+      $data.maximize ? $data.containerSize : $data.canvasSize;
 
     // ------- global states --------
     let canvasRenderer: Renderer;
@@ -39,12 +43,17 @@ export function makeSketch($data: SketchData) {
       canvasRenderer ? canvasRenderer.elt !== e.target : false;
 
     ctx.setup = () => {
-      canvasRenderer = ctx.createCanvas(1000, 1000);
+      canvasRenderer = ctx.createCanvas(...getNewCanvasSize());
     };
 
     ctx.draw = () => {
       ctx.background("white");
       const cursor = getCursor();
+      const dimension = getDimension();
+
+      // resize canvas if needed
+      // if($data.maximize && isEqual(dimension, $data.containerSize))
+      resizeCanvasDimension(dimension);
 
       // Draw existing shapes
       for (const shape of $data.drawnShapes.array) {
@@ -78,6 +87,14 @@ export function makeSketch($data: SketchData) {
 
       drawCursorCoordinate(ctx);
     };
+
+    function resizeCanvasDimension(dimension: Point) {
+      const newDimension = getNewCanvasSize();
+
+      if (!isEqual(dimension, newDimension)) {
+        ctx.resizeCanvas(...newDimension);
+      }
+    }
 
     ctx.mousePressed = (e: PointerEvent) => {
       if (isIrrelevantEvent(e)) return;
@@ -164,6 +181,7 @@ function drawCursorCoordinate(ctx: CTX) {
     text: coordintate,
   });
 
+  ctx.textFont("Monospace");
   ctx.textSize(12);
   ctx.fill("black");
   ctx.stroke("white");

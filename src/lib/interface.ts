@@ -30,8 +30,11 @@ export interface Shapes {
 }
 
 export interface SketchData {
+  maximize: boolean;
   drawnShapes: ShapeStore;
   selectedTool: ToolNames;
+  canvasSize: [number, number];
+  containerSize: [number, number];
   toolState: { status: ToolStatus; data: any };
 }
 
