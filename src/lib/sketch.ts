@@ -1,34 +1,27 @@
 import {
+  type CTX,
   ToolNames,
   ToolStatus,
   type Color,
   type Point,
   type SketchData,
 } from "./interface";
-import p5 from "p5";
 import {
-  constrainToSquare,
+  isIdle,
   fmtColor,
   isDrawing,
-  isIdle,
   isSelectTool,
+  constrainToSquare,
+  approximateTextDimension,
 } from "./util";
 
 const SELECT_BOX_COLOR = Object.freeze([96, 213, 255, 100]) as Color;
 
-type CTX = InstanceType<typeof p5>;
-
-interface RendererArg {
-  ctx: CTX;
-  cursor: Point;
-  $data: SketchData;
-}
-
 const shapeRenderers = Object.freeze({
+  [ToolNames.LINE]: drawLine,
+  [ToolNames.ELLIPSE]: makeDrawRectOrEllipse(ToolNames.ELLIPSE),
   [ToolNames.SELECT]: makeDrawRectOrEllipse(ToolNames.RECTANGLE),
   [ToolNames.RECTANGLE]: makeDrawRectOrEllipse(ToolNames.RECTANGLE),
-  [ToolNames.ELLIPSE]: makeDrawRectOrEllipse(ToolNames.ELLIPSE),
-  [ToolNames.LINE]: drawLine,
 } as const);
 
 export function makeSketch($data: SketchData) {
@@ -46,38 +39,39 @@ export function makeSketch($data: SketchData) {
 
     ctx.draw = () => {
       ctx.background("white");
-
       const cursor = getCursor();
 
+      // Draw existing shapes
       for (const shape of $data.drawnShapes || []) {
         if (shapeRenderers[shape.type])
           shapeRenderers[shape.type](ctx, shape.arg);
       }
 
+      // draw shapes of currently selected tool
       if ($data.selectedTool) {
         const { selectedTool, toolState } = $data;
 
-        if (!toolState) {
-          $data.toolState = { status: ToolStatus.IDLE, data: {} };
-        }
+        // set initial data
+        if (!toolState) $data.toolState = { status: ToolStatus.IDLE, data: {} };
 
         const startPoint = toolState.data.startPoint;
 
         if (isDrawing($data) && startPoint && shapeRenderers[selectedTool]) {
-          shapeRenderers[selectedTool](
-            ctx,
-            normalizeShapeArg(
-              {
-                end: cursor,
-                start: toolState.data.startPoint,
-                isConstrained: isShiftKeyPressed,
-                fill: isSelectTool($data) ? SELECT_BOX_COLOR : undefined,
-              },
-              { isConstrained: isShiftKeyPressed }
-            )
+          const shapeArg = normalizeShapeArg(
+            {
+              end: cursor,
+              start: toolState.data.startPoint,
+              isConstrained: isShiftKeyPressed,
+              fill: isSelectTool($data) ? SELECT_BOX_COLOR : undefined,
+            },
+            { isConstrained: isShiftKeyPressed }
           );
+
+          shapeRenderers[selectedTool](ctx, shapeArg);
         }
       }
+
+      drawCursorCoordinate(ctx);
     };
 
     ctx.mousePressed = (e: PointerEvent) => {
@@ -95,6 +89,7 @@ export function makeSketch($data: SketchData) {
       const cursor = getCursor();
 
       if (isDrawing($data)) {
+        // Save the drawn shape
         if (!isSelectTool($data)) {
           const shapeArg = normalizeShapeArg(
             {
@@ -108,6 +103,7 @@ export function makeSketch($data: SketchData) {
           $data.drawnShapes.push({ arg: shapeArg, type: $data.selectedTool });
         }
 
+        // reset the tool state
         $data.toolState.status = ToolStatus.IDLE;
         $data.toolState.data = {};
       }
@@ -149,6 +145,22 @@ interface DrawRect_Arg {
   strokeWidth?: number;
   constrainedEnd?: Point;
   isConstrained?: boolean;
+}
+
+function drawCursorCoordinate(ctx: CTX) {
+  const coordintate = [ctx.mouseX || 0, ctx.mouseY || 0]
+    .map((n) => n.toFixed(2))
+    .join(", ");
+
+  const [width, height] = approximateTextDimension({
+    ctx,
+    text: coordintate,
+  });
+
+  ctx.textSize(12);
+  ctx.fill("black");
+  ctx.stroke("white");
+  ctx.text(coordintate, ctx.width - width - 4, height / 2 + 5);
 }
 
 function makeDrawRectOrEllipse(

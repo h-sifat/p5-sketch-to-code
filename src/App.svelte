@@ -9,28 +9,23 @@
   let p5Instance: p5;
   let canvas: HTMLDivElement;
 
-  let selectedTool: ToolNames = $state(ToolNames.SELECT);
-
   // svelte-ignore state_referenced_locally
-  const sketchData: SketchData = {
-    selectedTool,
+  let data: SketchData = $state({
     drawnShapes: [],
+    selectedTool: null,
     toolState: { data: {}, status: ToolStatus.IDLE },
-  };
+  });
 
   // ------- Event Handlers ----------
   function handleSelectTool(tool: ToolNames) {
-    selectedTool = selectedTool === tool ? ToolNames.SELECT : tool;
+    data.selectedTool = data.selectedTool === tool ? ToolNames.SELECT : tool;
   }
 
   // --------- Lifecycle Hooks -----------
   $effect(() => {
     if (canvas && !p5Instance) {
-      p5Instance = new p5(makeSketch(sketchData), canvas);
+      p5Instance = new p5(makeSketch(data), canvas);
     }
-
-    if (selectedTool !== sketchData.selectedTool)
-      sketchData.selectedTool = selectedTool;
   });
 
   onDestroy(() => {
@@ -47,7 +42,7 @@
       "flex items-center justify-center px-5 py-1 border border-black"
     )}
   >
-    <ShapeSelector selected={selectedTool} {handleSelectTool} />
+    <ShapeSelector selected={data.selectedTool} {handleSelectTool} />
   </div>
 
   <div

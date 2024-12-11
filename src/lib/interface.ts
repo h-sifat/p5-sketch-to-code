@@ -1,3 +1,5 @@
+import type p5 from "p5";
+
 export const enum ToolNames {
   SELECT = "select",
 
@@ -29,3 +31,4 @@ export interface SketchData {
 
 export type Point = readonly [number, number];
 export type Color = string | number[];
+export type CTX = InstanceType<typeof p5>;

@@ -1,6 +1,7 @@
 import {
   ToolNames,
   ToolStatus,
+  type CTX,
   type Point,
   type SketchData,
 } from "./interface";
@@ -37,4 +38,9 @@ export function constrainToSquare(start: Point, end: Point): Point {
     a + side * Math.sign(x - a), // New x
     b + side * Math.sign(y - b), // New y
   ];
+}
+
+export function approximateTextDimension(arg: { ctx: CTX; text: string }) {
+  const { ctx, text } = arg;
+  return [ctx.textWidth(text), ctx.textAscent() + ctx.textDescent()];
 }
