@@ -6,7 +6,13 @@ import {
   type SketchData,
 } from "./interface";
 import p5 from "p5";
-import { fmtColor, isDrawing, isIdle, isSelectTool } from "./util";
+import {
+  constrainToSquare,
+  fmtColor,
+  isDrawing,
+  isIdle,
+  isSelectTool,
+} from "./util";
 
 const SELECT_BOX_COLOR = Object.freeze([96, 213, 255, 100]) as Color;
 
@@ -19,14 +25,20 @@ interface RendererArg {
 }
 
 const shapeRenderers = Object.freeze({
-  [ToolNames.SELECT]: drawRect,
-  [ToolNames.RECTANGLE]: drawRect,
+  [ToolNames.SELECT]: makeDrawRectOrEllipse(ToolNames.RECTANGLE),
+  [ToolNames.RECTANGLE]: makeDrawRectOrEllipse(ToolNames.RECTANGLE),
+  [ToolNames.ELLIPSE]: makeDrawRectOrEllipse(ToolNames.ELLIPSE),
   [ToolNames.LINE]: drawLine,
 } as const);
 
 export function makeSketch($data: SketchData) {
   return function sketch(ctx: CTX) {
     const getCursor = () => [ctx.mouseX || 0, ctx.mouseY || 0] as const;
+
+    // ------- global states --------
+    let isMetaKeyPressed = false;
+    let isShiftKeyPressed = false;
+    // ------- end global states --------
 
     ctx.setup = () => {
       ctx.createCanvas(1000, 1000);
@@ -52,11 +64,18 @@ export function makeSketch($data: SketchData) {
         const startPoint = toolState.data.startPoint;
 
         if (isDrawing($data) && startPoint && shapeRenderers[selectedTool]) {
-          shapeRenderers[selectedTool](ctx, {
-            end: cursor,
-            start: toolState.data.startPoint,
-            fill: isSelectTool($data) ? SELECT_BOX_COLOR : undefined,
-          });
+          shapeRenderers[selectedTool](
+            ctx,
+            normalizeShapeArg(
+              {
+                end: cursor,
+                start: toolState.data.startPoint,
+                isConstrained: isShiftKeyPressed,
+                fill: isSelectTool($data) ? SELECT_BOX_COLOR : undefined,
+              },
+              { isConstrained: isShiftKeyPressed }
+            )
+          );
         }
       }
     };
@@ -77,10 +96,16 @@ export function makeSketch($data: SketchData) {
 
       if (isDrawing($data)) {
         if (!isSelectTool($data)) {
-          $data.drawnShapes.push({
-            type: $data.selectedTool,
-            arg: { end: cursor, start: $data.toolState.data.startPoint },
-          });
+          const shapeArg = normalizeShapeArg(
+            {
+              end: cursor,
+              isConstrained: isShiftKeyPressed,
+              start: $data.toolState.data.startPoint,
+            },
+            { isConstrained: isShiftKeyPressed }
+          );
+
+          $data.drawnShapes.push({ arg: shapeArg, type: $data.selectedTool });
         }
 
         $data.toolState.status = ToolStatus.IDLE;
@@ -89,7 +114,31 @@ export function makeSketch($data: SketchData) {
 
       // console.log("mouseReleased:", cursor, $data.toolState);
     };
+
+    ctx.keyPressed = (e: KeyboardEvent) => {
+      isShiftKeyPressed = e.shiftKey;
+      isMetaKeyPressed = e.ctrlKey || e.metaKey;
+    };
+
+    ctx.keyReleased = () => {
+      isMetaKeyPressed = false;
+      isShiftKeyPressed = false;
+    };
   };
+}
+
+function normalizeShapeArg(
+  arg: DrawRect_Arg,
+  options: { isConstrained?: boolean } = {}
+) {
+  const { isConstrained = false } = options;
+
+  if (isConstrained) {
+    arg.isConstrained = isConstrained;
+    arg.constrainedEnd = constrainToSquare(arg.start, arg.end);
+  }
+
+  return arg;
 }
 
 interface DrawRect_Arg {
@@ -98,23 +147,39 @@ interface DrawRect_Arg {
   start: Point;
   stroke?: Color;
   strokeWidth?: number;
+  constrainedEnd?: Point;
+  isConstrained?: boolean;
 }
 
-function drawRect(ctx: CTX, arg: DrawRect_Arg) {
-  const { end, start, fill = "gray", strokeWidth = 0 } = arg;
-  const stroke = arg.stroke || fill;
+function makeDrawRectOrEllipse(
+  shapeType: ToolNames.RECTANGLE | ToolNames.ELLIPSE
+) {
+  return function drawRect(ctx: CTX, arg: DrawRect_Arg) {
+    const {
+      end,
+      start,
+      fill = "gray",
+      strokeWidth = 0,
+      isConstrained = false,
+    } = arg;
 
-  const [a, b] = start;
-  const [x, y] = end;
+    const stroke = arg.stroke || fill;
 
-  const width = x - a;
-  const height = y - b;
+    const [a, b] = start;
+    const [x, y] =
+      isConstrained && arg.constrainedEnd ? arg.constrainedEnd : end;
 
-  setFill(ctx, fill);
-  setStroke(ctx, stroke);
+    let width = x - a;
+    let height = y - b;
 
-  ctx.strokeWeight(strokeWidth);
-  ctx.rect(a, b, width, height);
+    setFill(ctx, fill);
+    setStroke(ctx, stroke);
+
+    ctx.strokeWeight(strokeWidth);
+
+    if (shapeType === ToolNames.RECTANGLE) ctx.rect(a, b, width, height);
+    else if (shapeType === ToolNames.ELLIPSE) ctx.ellipse(a, b, width, height);
+  };
 }
 
 function drawLine(ctx: CTX, arg: Omit<DrawRect_Arg, "fill">) {

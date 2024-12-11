@@ -39,7 +39,7 @@
 </script>
 
 <div
-  class="h-screen max-h-screen p-2 overflow-y-scroll border-2 border-red-500"
+  class="h-screen max-h-screen px-2 py-8 overflow-y-scroll border-2 border-red-500"
 >
   <div
     class={clsx(

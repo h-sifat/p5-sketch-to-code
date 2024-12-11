@@ -38,7 +38,7 @@
 {#each Object.entries(tools) as [name, Icon]}
   {@const isSelected = name === selected}
 
-  <div class="tooltip tooltip-right" data-tip={name}>
+  <div class="tooltip tooltip-top" data-tip={name}>
     <button
       class={clsx("btn btn-square btn-xs", {
         "btn-neutral": isSelected,
