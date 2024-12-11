@@ -1,15 +1,15 @@
 <script lang="ts">
-  import p5 from "p5";
-  import { onDestroy } from "svelte";
-  import Toolbar from "./lib/Toolbar.svelte";
-  import clsx from "clsx";
-  import { makeSketch } from "./lib/sketch";
   import {
     Commands,
     ToolNames,
     ToolStatus,
     type SketchData,
   } from "./lib/interface";
+  import p5 from "p5";
+  import clsx from "clsx";
+  import { onDestroy } from "svelte";
+  import { makeSketch } from "./lib/sketch";
+  import Toolbar from "./lib/Toolbar.svelte";
   import { ShapeStore } from "./lib/states.svelte";
 
   let p5Instance: p5;
@@ -60,27 +60,65 @@
   });
 </script>
 
-<div
-  class="h-screen max-h-screen px-2 py-8 overflow-y-scroll border-2 border-red-500"
->
+<div class="h-screen max-h-screen pt-8 border-2 border-red-500 wrapper">
+  <!-- Top toolbar -->
   <div
     class={clsx(
-      "rounded shadow w-max mx-auto gap-1",
-      "flex items-center justify-center px-5 py-1 border border-black"
+      "rounded shadow w-max mx-auto gap-1 toolbar",
+      "flex items-center justify-center px-5 py-1 mb-2  border border-black"
     )}
   >
     <Toolbar selected={data.selectedTool} {handleSelectTool} {handleCommand} />
   </div>
 
+  <div class="left-panel min-w-8"></div>
+
+  <!-- Canvas -->
   <div
     bind:this={canvas}
-    class="flex items-center justify-center mt-5 canvas"
+    class="flex items-center justify-center overflow-auto bg-gray-200 canvas"
   ></div>
+
+  <!-- Left Config Panel -->
+  <div class="bg-red-100 right-panel">Config Panel</div>
+
+  <!-- Bootm panel -->
+  <div class="bottom-panel min-h-8"></div>
 </div>
 
 <style>
   :global(.canvas canvas) {
     border: 2px solid black;
     border-radius: 5px;
+  }
+
+  .wrapper {
+    display: grid;
+    grid-template-columns: min-content 1fr max-content;
+    grid-template-rows: min-content 1fr min-content;
+    grid-template-areas:
+      "toolbar toolbar toolbar"
+      "left canvas right"
+      "footer footer footer";
+  }
+
+  .toolbar {
+    grid-area: toolbar;
+  }
+
+  .right-panel {
+    grid-area: right;
+  }
+
+  .left-panel {
+    grid-area: left;
+  }
+
+  .bottom-panel {
+    grid-area: footer;
+  }
+
+  .canvas {
+    grid-area: canvas;
   }
 </style>
