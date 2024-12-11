@@ -4,7 +4,7 @@
   import ShapeSelector from "./lib/ShapeSelector.svelte";
   import clsx from "clsx";
   import { makeSketch } from "./lib/sketch";
-  import { ToolNames, type SketchData } from "./lib/interface";
+  import { ToolNames, ToolStatus, type SketchData } from "./lib/interface";
 
   let p5Instance: p5;
   let canvas: HTMLDivElement;
@@ -12,7 +12,11 @@
   let selectedTool: ToolNames = $state(ToolNames.SELECT);
 
   // svelte-ignore state_referenced_locally
-  const sketchData: SketchData = { selectedTool };
+  const sketchData: SketchData = {
+    selectedTool,
+    drawnShapes: [],
+    toolState: { data: {}, status: ToolStatus.IDLE },
+  };
 
   // ------- Event Handlers ----------
   function handleSelectTool(tool: ToolNames) {

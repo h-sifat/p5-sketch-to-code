@@ -1,8 +1,9 @@
 export const enum ToolNames {
+  SELECT = "select",
+
   PEN = "pen",
   LINE = "line",
   TEXT = "text",
-  SELECT = "select",
   SPLINE = "spline",
   ELLIPSE = "ellipse",
   POLYGON = "polygon",
@@ -10,6 +11,21 @@ export const enum ToolNames {
   RECTANGLE = "rectangle",
 }
 
-export interface SketchData {
-  selectedTool: ToolNames;
+export const enum ToolStatus {
+  IDLE = "idle",
+  DRAWING = "drawing",
 }
+
+export interface Shapes {
+  arg: any;
+  type: ToolNames;
+}
+
+export interface SketchData {
+  drawnShapes: Shapes[];
+  selectedTool: ToolNames;
+  toolState: { status: ToolStatus; data: any };
+}
+
+export type Point = readonly [number, number];
+export type Color = string | number[];
